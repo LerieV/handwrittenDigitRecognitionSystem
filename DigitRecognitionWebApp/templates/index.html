@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digit Recognition System</title>
+    <link rel="shortcut icon" href="favicon.png" type="image/x-icon">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: rgb(21, 21, 21); color: white; }
+        form { margin: 20px; }
+        input[type="file"] { margin: 10px; }
+        img { max-width: 200px; margin-top: 20px; border: 2px solid #ddd; padding: 5px; }
+        canvas { border: 2px solid rgb(255, 255, 255); }
+    </style>
+</head>
+<body>
+    <h1 style="text-decoration: underline;">The Handwritten Digit Recognition System</h1>
+
+    <!-- Upload file option -->
+    <h3>Upload an image</h3>
+    <form action="/upload_predict" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit">Predict</button>
+    </form>
+
+    <!-- Drawing canvas option -->
+    <h3>Draw a digit</h3>
+    <canvas id="canvas" width="200" height="200"></canvas><br>
+    <button onclick="clearCanvas()">Clear</button>
+    <button onclick="predictDrawing()">Predict</button>
+
+    <h3>Prediction Result:</h3>
+    <p id="predictionResult">{{ message }}</p>
+    <img src="{{ image }}" alt="Uploaded Image" id="uploadedImage" style="height: 150px; width:150px">
+
+    <script>
+        // Handle the drawing on the canvas
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 8;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "white";
+
+        var drawing = false;
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        function startDrawing(e) {
+            drawing = true;
+            draw(e);
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            drawing = false;
+            ctx.beginPath();
+        }
+
+        // Clear the canvas
+        function clearCanvas() {
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Send the drawing to the backend for prediction
+        function predictDrawing() {
+            var imageData = canvas.toDataURL("image/png");
+
+            fetch('/draw_predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image: imageData }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('predictionResult').innerText = data.message;
+            });
+        }
+    </script>
+</body>
+</html>
